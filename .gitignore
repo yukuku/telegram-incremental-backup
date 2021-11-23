@@ -1,0 +1,4 @@
+.session/
+.venv/
+*.pyc
+config.ini
