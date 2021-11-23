@@ -41,8 +41,6 @@ async def backup_message_batches(client: TelegramClient, db: Db, highest_message
 
 
 async def client_main(client: TelegramClient):
-    print('(Press Ctrl+C to stop this)')
-
     me = await client.get_me()
     print(me.stringify())
 
@@ -62,7 +60,9 @@ async def client_main(client: TelegramClient):
 
     print(f'Highest known message id: {highest_message_id}')
 
+    print('Setting up database')
     db = get_db()
+    db.on_create()
 
     await backup_message_batches(client, db, highest_message_id)
     print('End of client_main')

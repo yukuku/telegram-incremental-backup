@@ -14,8 +14,6 @@ mydb = mysql.connector.connect(
     database=db_config['database'],
 )
 
-mydb.autocommit = True
-
 
 class Db:
     db: MySQLConnection
@@ -23,15 +21,25 @@ class Db:
     def __init__(self, db):
         self.db = db
 
+    def on_create(self):
+        with self.db.cursor() as c:
+            with open('schema/mysql_1.sql', 'r', encoding='utf8') as f:
+                sql = f.read()
+                c.execute(sql, multi=True)
+                print(sql)
+
     def mark_message_backup_status_done(self, message_id_from: int, message_id_to: int):
+        self.db.reconnect()
         with self.db.cursor() as c:
             c.execute(
                 'INSERT INTO MessageBackupStatus(message_id_from, message_id_to, done_time) '
                 'VALUES(%s, %s, UTC_TIMESTAMP())',
                 (message_id_from, message_id_to)
             )
+        self.db.commit()
 
     def is_message_backup_status_done(self, message_id_from: int, message_id_to: int):
+        self.db.reconnect()
         with self.db.cursor() as c:
             c.execute(
                 'SELECT done_time FROM MessageBackupStatus WHERE message_id_from=%s AND message_id_to=%s',
