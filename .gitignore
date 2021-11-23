@@ -1,4 +1,5 @@
-.session/
+.session/*
+!.session/empty
 .venv/
 *.pyc
 config.ini
