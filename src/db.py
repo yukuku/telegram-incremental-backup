@@ -26,7 +26,6 @@ class Db:
             with open('schema/mysql_1.sql', 'r', encoding='utf8') as f:
                 sql = f.read()
                 c.execute(sql, multi=True)
-                print(sql)
 
     def mark_message_backup_status_done(self, message_id_from: int, message_id_to: int):
         self.db.reconnect()
@@ -63,6 +62,7 @@ class Db:
                 'VALUES(%s, %s, %s, %s, %s, %s, %s, UTC_TIMESTAMP()) ',
                 (message.id, message.message, peer_user_id, peer_chat_id, message.date, message.out, message.to_json())
             )
+        self.db.commit()
 
 
 def get_db() -> Db:
