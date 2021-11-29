@@ -67,8 +67,9 @@ class Db:
             )
             return c.fetchone() is not None
 
-    def store_messages(self, messages: list[Message]):
+    def store_messages(self, messages):
         with self.db.cursor() as c:
+            message: Message
             for message in messages:
                 peer_user_id = None
                 peer_chat_id = None

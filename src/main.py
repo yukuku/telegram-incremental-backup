@@ -1,11 +1,12 @@
+import logging
+from logging import info
+
 from telethon import TelegramClient
 from telethon.tl.types import *
 
 from config import get_telegram_api_config
 from db import get_db, Db
 
-from logging import info
-import logging
 
 async def backup_message_batches(client: TelegramClient, db: Db, highest_message_id: int):
     batch_size = 100
@@ -28,7 +29,7 @@ async def backup_message_batches(client: TelegramClient, db: Db, highest_message
             info(f'Message batch {message_id_from} .. {message_id_to} has already been backed up')
 
         else:
-            messages: list[Message] = [
+            messages = [
                 m async for m in client.iter_messages(None, ids=list(range(message_id_from, message_id_to)))
                 if m is not None
             ]
