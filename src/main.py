@@ -4,6 +4,8 @@ from telethon.tl.types import *
 from config import get_telegram_api_config
 from db import get_db, Db
 
+from logging import info
+import logging
 
 async def backup_message_batches(client: TelegramClient, db: Db, highest_message_id: int):
     batch_size = 100
@@ -13,25 +15,29 @@ async def backup_message_batches(client: TelegramClient, db: Db, highest_message
     # don't mark as stored if this is the first batch
     is_first_batch = True
 
+    info(f'Getting message backup statuses')
+    statuses = db.get_all_message_backup_statuses()
+
     while message_id_from >= 0:
         if message_id_from == 0:
             message_id_from = 1
 
-        print(f'Processing message batch {message_id_from} .. {message_id_to}')
+        info(f'Processing message batch {message_id_from} .. {message_id_to}')
 
-        if db.is_message_backup_status_done(message_id_from, message_id_to):
-            print(f'Message batch {message_id_from} .. {message_id_to} has already been backed up')
+        if db.is_message_backup_status_done_quick(statuses, message_id_from, message_id_to):
+            info(f'Message batch {message_id_from} .. {message_id_to} has already been backed up')
 
         else:
-            message: Message
-            async for message in client.iter_messages(None, ids=list(range(message_id_from, message_id_to))):
-                if message:
-                    db.store_message(message)
-                    print(f'Message {message.id} stored')
+            messages: list[Message] = [
+                m async for m in client.iter_messages(None, ids=list(range(message_id_from, message_id_to)))
+                if m is not None
+            ]
+            db.store_messages(messages)
+            info(f'Message batch {message_id_from} .. {message_id_to}: stored {len(messages)} messages')
 
             if not is_first_batch:
                 db.mark_message_backup_status_done(message_id_from, message_id_to)
-                print(f'Message batch {message_id_from} .. {message_id_to} is marked as backed up')
+                info(f'Message batch {message_id_from} .. {message_id_to} is marked as backed up')
 
         # prepare next!
         message_id_from -= batch_size
@@ -42,11 +48,11 @@ async def backup_message_batches(client: TelegramClient, db: Db, highest_message
 
 async def client_main(client: TelegramClient):
     me = await client.get_me()
-    print(me.stringify())
+    info(me.stringify())
 
     highest_message_id = None
 
-    print('Finding highest known message id')
+    info('Finding highest known message id')
 
     message: Message
     async for message in client.iter_messages(''):
@@ -55,20 +61,21 @@ async def client_main(client: TelegramClient):
             break
 
     if highest_message_id is None:
-        print('Error: ran out of messages when finding highest message id')
+        info('Error: ran out of messages when finding highest message id')
         return
 
-    print(f'Highest known message id: {highest_message_id}')
+    info(f'Highest known message id: {highest_message_id}')
 
-    print('Setting up database')
+    info('Setting up database')
     db = get_db()
     db.on_create()
 
     await backup_message_batches(client, db, highest_message_id)
-    print('End of client_main')
+    info('End of client_main')
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
     telegram_api_config = get_telegram_api_config()
     api_id = telegram_api_config.getint('id')
     api_hash = telegram_api_config['hash']
