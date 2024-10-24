@@ -1,4 +1,4 @@
-mysql-connector-python==8.0.27
+mysql-connector-python==9.1.0
 protobuf==3.19.1
 pyaes==1.6.1
 pyasn1==0.4.8
